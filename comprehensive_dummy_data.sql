@@ -1,15 +1,9 @@
 -- 総合擬似データ投入スクリプト
 
--- 0. 既存データの全クリア
-SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE Clinic_Treatments;
-TRUNCATE TABLE Concern_Procedure_Links;
-TRUNCATE TABLE Doctors;
-TRUNCATE TABLE Institutions;
-TRUNCATE TABLE Clinics;
-TRUNCATE TABLE Concerns;
-TRUNCATE TABLE Procedures;
-SET FOREIGN_KEY_CHECKS = 1;
+-- 0. 既存データの全クリア (PostgreSQL版)
+-- TRUNCATEはテーブルのデータを空にし、RESTART IDENTITYで連番(SERIAL)をリセット、CASCADEで依存関係を処理します。
+TRUNCATE TABLE Clinics, Institutions, Doctors, Concerns, Procedures, Concern_Procedure_Links, Clinic_Treatments RESTART IDENTITY CASCADE;
+
 
 -- 1. お悩みカテゴリ (Concerns) の登録
 INSERT INTO Concerns (name) VALUES
