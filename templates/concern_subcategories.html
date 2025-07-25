@@ -1,0 +1,64 @@
+{% extends "layout.html" %}
+{% block title %}{{ concern.name }}の種類から探す{% endblock %}
+{% block content %}
+<h2>「{{ concern.name }}」の種類を選択してください</h2>
+<p>あなたの「{{ concern.name }}」に最も近いものを選択することで、より適切な施術をご提案できます。</p>
+
+<div class="subcategory-list">
+    {% for subcategory in subcategories %}
+    <a href="{{ url_for('show_concern_subcategory_detail', subcategory_id=subcategory.subcategory_id) }}" class="viewpoint-card subcategory-card">
+        <h3>{{ subcategory.name }}</h3>
+        {% if subcategory.image_url %}
+        <img src="{{ subcategory.image_url }}" alt="{{ subcategory.name }}" class="subcategory-image">
+        {% endif %}
+        <p>{{ subcategory.short_description }}</p>
+    </a>
+    {% endfor %}
+</div>
+
+<p class="back-link"><a href="{{ url_for('show_concerns') }}">&laquo; お悩み一覧に戻る</a></p>
+
+{# 必要であれば、CSSで .viewpoint-card に似たスタイルを .subcategory-card に適用してください #}
+<style>
+    .subcategory-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+    }
+    .subcategory-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+        text-decoration: none;
+        color: #333;
+        display: flex; /* Flexboxを使って内容を中央寄せ */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    .subcategory-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .subcategory-card h3 {
+        color: #007bff;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+    .subcategory-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+    .subcategory-card p {
+        font-size: 0.9em;
+        color: #666;
+    }
+</style>
+{% endblock %}

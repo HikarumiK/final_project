@@ -1,1 +1,33 @@
-{% extends "layout.html" %}{% block title %}{{ concern.name }}から探す{% endblock %}{% block content %}<h2>「{{ concern.name }}」に関連する施術</h2><div class="results-list">{% for proc in procedures %}<div class="result-item"><h3><a href="{{ url_for('show_procedure_detail', procedure_id=proc.procedure_id) }}">{{ proc.name }}</a></h3><p><strong>概要:</strong> {{ proc.description }}</p><p><strong>デメリット/リスク:</strong> {{ proc.demerits }}</p></div>{% else %}<p>関連する施術が見つかりませんでした。</p>{% endfor %}</div>{% if total_pages > 1 %}<nav class="pagination"><ul>{% if page > 1 %}<li><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=page-1) }}">&laquo; 前へ</a></li>{% endif %}{% for p in range(1, total_pages + 1) %}<li class="{{ 'active' if p == page else '' }}"><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=p) }}">{{ p }}</a></li>{% endfor %}{% if page < total_pages %}<li><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=page+1) }}">&raquo; 次へ</a></li>{% endif %}</ul></nav>{% endif %}<p class="back-link"><a href="{{ url_for('show_concerns') }}">&laquo; お悩み一覧に戻る</a></p>{% endblock %}
+{% extends "layout.html" %}
+{% block title %}{{ concern.name }}から探す{% endblock %}
+{% block content %}
+<h2>「{{ concern.name }}」に関連する施術</h2>
+
+<div class="results-list">
+    {% for proc in procedures %}
+    <div class="result-item">
+        <h3><a href="{{ url_for('show_procedure_detail', procedure_id=proc.procedure_id) }}">{{ proc.name }}</a></h3>
+        {% if proc.severity_level %}
+        <p class="severity-tag">対応度: {{ proc.severity_level }}</p> {# severity_level を表示 #}
+        {% endif %}
+        <p><strong>概要:</strong> {{ proc.description }}</p>
+        <p><strong>デメリット/リスク:</strong> {{ proc.demerits }}</p>
+    </div>
+    {% else %}
+    <p>関連する施術が見つかりませんでした。</p>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<nav class="pagination">
+    <ul>
+        {% if page > 1 %}<li><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=page-1) }}">&laquo; 前へ</a></li>{% endif %}
+        {% for p in range(1, total_pages + 1) %}
+        <li class="{{ 'active' if p == page else '' }}"><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=p) }}">{{ p }}</a></li>
+        {% endfor %}
+        {% if page < total_pages %}<li><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id, page=page+1) }}">&raquo; 次へ</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+<p class="back-link"><a href="{{ url_for('show_concerns') }}">&laquo; お悩み一覧に戻る</a></p>
+{% endblock %}

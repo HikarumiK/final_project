@@ -1,0 +1,126 @@
+{% extends "layout.html" %}
+{% block title %}{{ concern.subcategory_name }}に関連する施術{% endblock %}
+{% block content %}
+<h2>「{{ concern.subcategory_name }}」に関連する施術</h2>
+<p class="concern-info">
+    **{{ concern.subcategory_name }}とは？**<br>
+    {{ concern.long_description }}
+    {% if concern.image_url %}
+    <img src="{{ concern.image_url }}" alt="{{ concern.subcategory_name }}" class="full-width-image">
+    {% endif %}
+</p>
+
+<div class="filter-sort-controls">
+    <form method="get" action="{{ url_for('show_concern_subcategory_detail', subcategory_id=concern.subcategory_id) }}">
+        <input type="hidden" name="page" value="1"> {# フィルタリング時は1ページ目に戻す #}
+
+        <label for="severity_filter">絞り込み：</label>
+        <select name="severity" id="severity_filter">
+            <option value="">全ての程度</option>
+            <option value="軽度" {% if filter_severity == '軽度' %}selected{% endif %}>軽度</option>
+            <option value="中程度" {% if filter_severity == '中程度' %}selected{% endif %}>中程度</option>
+            <option value="重度" {% if filter_severity == '重度' %}selected{% endif %}>重度</option>
+        </select>
+
+        <label for="sort_severity">並び替え：</label>
+        <select name="sort_severity" id="sort_severity">
+            <option value="">デフォルト（名前順）</option>
+            <option value="asc_severity" {% if sort_by_severity == 'asc_severity' %}selected{% endif %}>程度の軽い順</option>
+            {# 必要であれば逆順も追加 #}
+        </select>
+
+        <button type="submit">適用</button>
+    </form>
+</div>
+
+<div class="results-list">
+    {% for proc in procedures %}
+    <div class="result-item">
+        <h3><a href="{{ url_for('show_procedure_detail', procedure_id=proc.procedure_id) }}">{{ proc.name }}</a></h3>
+        {% if proc.severity_level %}
+        <p class="severity-tag">対応度: {{ proc.severity_level }}</p> {# severity_level を表示 #}
+        {% endif %}
+        <p><strong>概要:</strong> {{ proc.description }}</p>
+        <p><strong>デメリット/リスク:</strong> {{ proc.demerits }}</p>
+    </div>
+    {% else %}
+    <p>関連する施術が見つかりませんでした。</p>
+    {% endfor %}
+</div>
+
+{% if total_pages > 1 %}
+<nav class="pagination">
+    <ul>
+        {% if page > 1 %}<li><a href="{{ url_for('show_concern_subcategory_detail', subcategory_id=concern.subcategory_id, page=page-1, severity=filter_severity, sort_severity=sort_by_severity) }}">&laquo; 前へ</a></li>{% endif %}
+        {% for p in range(1, total_pages + 1) %}
+        <li class="{{ 'active' if p == page else '' }}"><a href="{{ url_for('show_concern_subcategory_detail', subcategory_id=concern.subcategory_id, page=p, severity=filter_severity, sort_severity=sort_by_severity) }}">{{ p }}</a></li>
+        {% endfor %}
+        {% if page < total_pages %}<li><a href="{{ url_for('show_concern_subcategory_detail', subcategory_id=concern.subcategory_id, page=page+1, severity=filter_severity, sort_severity=sort_by_severity) }}">&raquo; 次へ</a></li>{% endif %}
+    </ul>
+</nav>
+{% endif %}
+<p class="back-link"><a href="{{ url_for('show_concern_detail', concern_id=concern.concern_id) }}">&laquo; 「{{ concern.concern_name }}」の種類選択に戻る</a></p>
+
+<style>
+    .concern-info {
+        background-color: #f8f9fa;
+        border-left: 5px solid #007bff;
+        padding: 15px;
+        margin-bottom: 20px;
+        line-height: 1.6;
+    }
+    .concern-info strong {
+        color: #0056b3;
+    }
+    .concern-info .full-width-image {
+        max-width: 100%;
+        height: auto;
+        display: block;
+        margin-top: 15px;
+        border-radius: 4px;
+    }
+    .filter-sort-controls {
+        background-color: #f2f2f2;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: flex;
+        flex-wrap: wrap; /* 小さい画面で折り返す */
+        gap: 15px; /* 各要素間のスペース */
+        align-items: center;
+    }
+    .filter-sort-controls label {
+        font-weight: bold;
+        color: #555;
+        margin-right: 5px;
+    }
+    .filter-sort-controls select,
+    .filter-sort-controls button {
+        padding: 8px 12px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 1em;
+    }
+    .filter-sort-controls button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .filter-sort-controls button:hover {
+        background-color: #0056b3;
+    }
+    .severity-tag {
+        display: inline-block;
+        background-color: #e0f7fa; /* 明るい青 */
+        color: #00796b; /* 濃い青緑 */
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.8em;
+        font-weight: bold;
+        margin-left: 10px;
+        border: 1px solid #b2ebf2;
+    }
+</style>
+{% endblock %}

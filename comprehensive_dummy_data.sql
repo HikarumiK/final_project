@@ -93,3 +93,73 @@ INSERT INTO Clinic_Treatments (clinic_id, procedure_id, price, price_details, eq
 (13, 2, 80000, '顔全体', 'ボルニューマ', '最新のモノポーラRF。'),
 (14, 10, 30000, '男性向け強力プラン', 'ボトックス（アラガン社製）', '発達した咬筋にアプローチ。'),
 (15, 4, 1200000, 'フルフェイスリフト', '拡大SMAS法', '持続性を最重視した術式。');
+
+-- 新テーブル: Concern_Subcategories
+-- 各サブカテゴリ（例：黒クマ、赤クマ、青クマ）の詳細を格納
+CREATE TABLE Concern_Subcategories (
+    subcategory_id SERIAL PRIMARY KEY,
+    concern_id INT NOT NULL, -- 親となるConcernへの外部キー
+    name VARCHAR(255) NOT NULL,
+    short_description VARCHAR(500), -- 患者が理解しやすい簡単な説明
+    long_description TEXT, -- 詳細な説明
+    image_url TEXT, -- サブカテゴリを示す画像（例：クマの種類の比較画像）
+    FOREIGN KEY (concern_id) REFERENCES Concerns(concern_id)
+);
+
+-- 新テーブル: Concern_Subcategory_Procedure_Links
+-- サブカテゴリと施術の関連付け
+CREATE TABLE Concern_Subcategory_Procedure_Links (
+    link_id SERIAL PRIMARY KEY,
+    subcategory_id INT NOT NULL,
+    procedure_id INT NOT NULL,
+    FOREIGN KEY (subcategory_id) REFERENCES Concern_Subcategories(subcategory_id),
+    FOREIGN KEY (procedure_id) REFERENCES Procedures(procedure_id),
+    UNIQUE (subcategory_id, procedure_id) -- 重複登録防止
+);
+
+-- 既存の Concern_Procedure_Links テーブルは、
+-- 今回の変更でサブカテゴリを持たない汎用的な悩みと施術の紐付けとして残すか、
+-- 全て Concern_Subcategory_Procedure_Links に移行するかを検討します。
+-- 全て移行する場合は、Concern_Procedure_Links は削除またはリネームを推奨します。
+-- 例として、今回は `Concern_Procedure_Links` はそのまま残し、
+-- クマのような詳細な分類が必要な場合に `Concern_Subcategory_Procedure_Links` を使用する方針とします。
+
+-- クマのサブカテゴリの擬似データ挿入例
+-- まず、"クマ" の concern_id を取得
+-- SELECT concern_id FROM Concerns WHERE name = 'クマ'; -- 例: id=2
+
+INSERT INTO Concern_Subcategories (concern_id, name, short_description, long_description, image_url) VALUES
+(2, '黒クマ', '目の下のたるみや膨らみが原因で影ができるクマ。上を向いたり、軽く引っ張ると影が薄くなる特徴があります。', '加齢やコラーゲン減少により眼窩脂肪が突出したり、頬がたるむことで影ができ、黒く見えるクマです。目の下の膨らみが特徴で、上を向くと影が薄くなる傾向があります。', '/static/images/black_bear.png'),
+(2, '赤クマ', '目の下の皮膚が薄く、眼輪筋や眼窩脂肪が透けて赤っぽく見えるクマ。', '目の下の皮膚が薄い方に多く見られ、その下の眼輪筋や眼窩脂肪が透けて赤みがかって見えるクマです。特に目の下を引っ張っても色の変化があまり見られないのが特徴です。', '/static/images/red_bear.png'),
+(2, '青クマ', '血行不良が原因で、目の下が青っぽく見えるクマ。睡眠不足や疲労が原因となることが多いです。', '寝不足やストレス、目の酷使による血行不良が主な原因で、毛細血管が透けて青っぽく見えるクマです。目の下を引っ張ると色が少し薄くなることがあります。', '/static/images/blue_bear.png');
+
+-- クマの種類と施術の関連付けの擬似データ挿入例
+-- 事前に concern_subcategories と procedures のIDを確認してください
+INSERT INTO Concern_Subcategory_Procedure_Links (subcategory_id, procedure_id) VALUES
+-- 黒クマ (例: subcategory_id = 1) に関連する施術
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '黒クマ'), (SELECT procedure_id FROM Procedures WHERE name = '経結膜脱脂')),
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '黒クマ'), (SELECT procedure_id FROM Procedures WHERE name = 'ハムラ法')),
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '黒クマ'), (SELECT procedure_id FROM Procedures WHERE name = '脂肪注入')),
+-- 赤クマ (例: subcategory_id = 2) に関連する施術
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '赤クマ'), (SELECT procedure_id FROM Procedures WHERE name = '脂肪注入')),
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '赤クマ'), (SELECT procedure_id FROM Procedures WHERE name = 'ヒアルロン酸注入')),
+-- 青クマ (例: subcategory_id = 3) に関連する施術
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '青クマ'), (SELECT procedure_id FROM Procedures WHERE name = 'ヒアルロン酸注入')),
+((SELECT subcategory_id FROM Concern_Subcategories WHERE name = '青クマ'), (SELECT procedure_id FROM Procedures WHERE name = 'レーザートーニング'));
+
+
+-- Concern_Procedure_Links または Concern_Subcategory_Procedure_Links にseverity_levelを追加
+ALTER TABLE Concern_Procedure_Links ADD COLUMN severity_level VARCHAR(50);
+ALTER TABLE Concern_Subcategory_Procedure_Links ADD COLUMN severity_level VARCHAR(50);
+-- '軽度', '中程度', '重度', '全般' などの文字列で管理
+-- またはINT型で 1:軽度, 2:中程度, 3:重度 のように管理し、ソートを容易にする
+
+-- たるみ（concern_id=1）の施術データ更新例
+-- HIFU: 軽度〜中程度
+UPDATE Concern_Procedure_Links SET severity_level = '軽度〜中程度' WHERE concern_id = 1 AND procedure_id = (SELECT procedure_id FROM Procedures WHERE name = 'HIFU（高密度焦点式超音波治療）');
+-- RF治療: 軽度〜中程度
+UPDATE Concern_Procedure_Links SET severity_level = '軽度〜中程度' WHERE concern_id = 1 AND procedure_id = (SELECT procedure_id FROM Procedures WHERE name = 'RF治療（高周波治療）');
+-- 糸リフト: 中程度〜重度
+UPDATE Concern_Procedure_Links SET severity_level = '中程度〜重度' WHERE concern_id = 1 AND procedure_id = (SELECT procedure_id FROM Procedures WHERE name = '糸リフト');
+-- フェイスリフト: 重度
+UPDATE Concern_Procedure_Links SET severity_level = '重度' WHERE concern_id = 1 AND procedure_id = (SELECT procedure_id FROM Procedures WHERE name = 'フェイスリフト');
