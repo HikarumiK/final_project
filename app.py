@@ -36,9 +36,7 @@ def get_db_connection():
 def home():
     return render_template('home.html')
 
-
 # 施術関連ページ
-
 @app.route('/procedures/')
 @auth.login_required
 def show_procedures():
@@ -96,9 +94,7 @@ def show_procedure_detail(procedure_id):
     conn.close()
     return render_template('procedure_detail.html', procedure=procedure, treatments=treatments)
 
-
 # お悩み関連ページ
-
 @app.route('/concerns/')
 @auth.login_required
 def show_concerns():
@@ -129,6 +125,10 @@ def show_concerns():
 @app.route('/concern/<int:concern_id>/')
 @auth.login_required
 def show_concern_detail(concern_id):
+    page = request.args.get('page', 1, type=int)
+    filter_severity = request.args.get('severity', '') # 新しい絞り込みパラメータ
+    sort_by_severity = request.args.get('sort_severity', '') # 新しいソートパラメータ
+
     conn = get_db_connection()
     cursor = conn.cursor(cursor_factory=DictCursor)
     
@@ -144,16 +144,12 @@ def show_concern_detail(concern_id):
     subcategories = cursor.fetchall()
 
     if subcategories:
-        # サブカテゴリがある場合は、サブカテゴリ選択画面へ
+        # サブカテゴリがある場合は、サブカテゴリ選択画面へリダイレクト
         cursor.close()
         conn.close()
         return render_template('concern_subcategories.html', concern=concern, subcategories=subcategories)
     else:
-        # サブカテゴリがない場合は、既存の施術表示ロジック
-        # (この場合は severity_level のフィルタリングやソートはテンプレートで提供しない)
-        page = request.args.get('page', 1, type=int)
-        
-        # Concern_Procedure_Links から取得
+        # サブカテゴリがない場合は、既存の施術表示ロジックにソート・フィルタを追加
         base_query = """
             FROM Procedures p
             JOIN Concern_Procedure_Links cpl ON p.procedure_id = cpl.procedure_id
@@ -161,20 +157,36 @@ def show_concern_detail(concern_id):
         """
         params = [concern_id]
 
+        # 絞り込み条件の追加
+        if filter_severity:
+            base_query += " AND cpl.severity_level LIKE %s"
+            params.append(f"%{filter_severity}%")
+
         count_query = "SELECT COUNT(p.procedure_id) " + base_query
         cursor.execute(count_query, params)
         total_count = cursor.fetchone()[0]
         total_pages = math.ceil(total_count / ITEMS_PER_PAGE) if total_count > 0 else 0
 
         offset = (page - 1) * ITEMS_PER_PAGE
-        # severity_level も取得できるようにする
-        data_query = "SELECT p.*, cpl.severity_level " + base_query + f" ORDER BY p.name ASC LIMIT {ITEMS_PER_PAGE} OFFSET {offset}"
+        
+        # ソート条件の追加
+        order_clause = " ORDER BY p.name ASC" # デフォルト
+        if sort_by_severity == 'asc_severity':
+            order_clause = " ORDER BY CASE cpl.severity_level WHEN '軽度' THEN 1 WHEN '中程度' THEN 2 WHEN '重度' THEN 3 ELSE 99 END ASC, p.name ASC"
+
+        data_query = "SELECT p.*, cpl.severity_level " + base_query + order_clause + f" LIMIT {ITEMS_PER_PAGE} OFFSET {offset}"
         cursor.execute(data_query, params)
         procedures = cursor.fetchall()
 
         cursor.close()
         conn.close()
-        return render_template('concern_detail.html', concern=concern, procedures=procedures, page=page, total_pages=total_pages)
+        return render_template('concern_detail.html',
+                               concern=concern,
+                               procedures=procedures,
+                               page=page,
+                               total_pages=total_pages,
+                               filter_severity=filter_severity, # テンプレートに渡す
+                               sort_by_severity=sort_by_severity) # テンプレートに渡す
 
 @app.route('/concern_subcategory/<int:subcategory_id>/')
 @auth.login_required
@@ -209,8 +221,6 @@ def show_concern_subcategory_detail(subcategory_id):
 
     # 絞り込み条件の追加
     if filter_severity:
-        # severity_level が '軽度', '中程度', '重度' のような文字列の場合の絞り込み
-        # 完全一致ではなく、部分一致で「軽度」なら「軽度〜中程度」も含むようにする
         base_query += " AND cspl.severity_level LIKE %s"
         params.append(f"%{filter_severity}%")
 
@@ -225,7 +235,6 @@ def show_concern_subcategory_detail(subcategory_id):
     # ソート条件の追加
     order_clause = " ORDER BY p.name ASC" # デフォルト
     if sort_by_severity == 'asc_severity':
-        # severity_level が '軽度', '中程度', '重度' のような文字列の場合のソート順
         order_clause = " ORDER BY CASE cspl.severity_level WHEN '軽度' THEN 1 WHEN '中程度' THEN 2 WHEN '重度' THEN 3 ELSE 99 END ASC, p.name ASC"
 
     data_query = "SELECT p.*, cspl.severity_level " + base_query + order_clause + f" LIMIT {ITEMS_PER_PAGE} OFFSET {offset}"
@@ -242,9 +251,7 @@ def show_concern_subcategory_detail(subcategory_id):
                            filter_severity=filter_severity,
                            sort_by_severity=sort_by_severity)
 
-
 # クリニック関連ページ
-
 @app.route('/clinics/')
 @auth.login_required
 def show_clinics():
@@ -291,9 +298,7 @@ def show_clinic_detail(clinic_id):
     conn.close()
     return render_template('clinic_detail.html', clinic=clinic, treatments=treatments)
 
-
 # 医師関連ページ
-
 @app.route('/doctors/')
 @auth.login_required
 def show_doctors():
